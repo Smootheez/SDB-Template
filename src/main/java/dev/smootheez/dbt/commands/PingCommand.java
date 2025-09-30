@@ -10,8 +10,10 @@ import org.springframework.stereotype.*;
 @Slf4j
 @Component
 public class PingCommand extends SlashCommand {
-    protected PingCommand() {
-        super("ping", "Replies with pong!");
+
+    @Override
+    public void init() {
+        setCommand("ping", "Pong!");
     }
 
     @Override

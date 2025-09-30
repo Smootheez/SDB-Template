@@ -1,5 +1,6 @@
 package dev.smootheez.dbt.command;
 
+import jakarta.annotation.*;
 import lombok.*;
 import lombok.extern.slf4j.*;
 import net.dv8tion.jda.api.events.interaction.command.*;
@@ -10,16 +11,22 @@ import java.util.*;
 @Slf4j
 @Getter
 public abstract class SlashCommand implements ISlashCommand {
-    private final String name;
-    private final String description;
-    private final Map<String, SubSlashCommand> subcommands = new HashMap<>();
-    private final Map<String, GroupSlashCommand> subcommandGroups = new HashMap<>();
+    private String name;
+    private String description;
+    private final Map<String, SubSlashCommand> subcommands;
+    private final Map<String, GroupSlashCommand> subcommandGroups;
 
-    protected SlashCommand(String name, String description) {
-        this.name = name;
-        this.description = description;
+    protected SlashCommand() {
+        this.subcommands = new HashMap<>();
+        this.subcommandGroups = new HashMap<>();
     }
+
+    @PostConstruct
+    public abstract void init();
+
     public CommandData commandData() {
+        nameAndDescriptionCheck(name, description);
+
         SlashCommandData data = Commands.slash(name, description);
         if (!subcommands.isEmpty()) {
             for (SubSlashCommand subcommand : subcommands.values()) {
@@ -38,6 +45,9 @@ public abstract class SlashCommand implements ISlashCommand {
 
     @Override
     public void execute(SlashCommandInteractionEvent event) {
+        if (name == null || description == null)
+            throw new IllegalStateException("Name and description must be set for SlashCommand: " + getClass().getName());
+
         String subcommandGroupName = event.getSubcommandGroup();
         if (subcommandGroupName != null) {
             GroupSlashCommand group = subcommandGroups.get(subcommandGroupName);
@@ -64,6 +74,12 @@ public abstract class SlashCommand implements ISlashCommand {
 
         log.error("No subcommand or subcommand group found for command: {}", name);
         event.reply("This command requires a subcommand or subcommand group.").setEphemeral(true).queue();
+    }
+
+    protected SlashCommand setCommand(String name, String description) {
+        this.name = name;
+        this.description = description;
+        return this;
     }
 
     public SlashCommand addSubcommand(SubSlashCommand subcommand) {

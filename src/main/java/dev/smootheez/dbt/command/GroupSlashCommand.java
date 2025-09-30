@@ -1,5 +1,6 @@
 package dev.smootheez.dbt.command;
 
+import jakarta.annotation.*;
 import lombok.*;
 import lombok.extern.slf4j.*;
 import net.dv8tion.jda.api.events.interaction.command.*;
@@ -10,16 +11,20 @@ import java.util.*;
 @Slf4j
 @Getter
 public abstract class GroupSlashCommand implements ISlashCommand {
-    private final String name;
-    private final String description;
-    private final Map<String, SubSlashCommand> subcommands = new HashMap<>();
+    private String name;
+    private String description;
+    private final Map<String, SubSlashCommand> subcommands;
 
-    protected GroupSlashCommand(String name, String description) {
-        this.name = name;
-        this.description = description;
+    protected GroupSlashCommand() {
+        this.subcommands = new HashMap<>();
     }
 
+    @PostConstruct
+    public abstract void init();
+
     public SubcommandGroupData subcommandGroupData() {
+        nameAndDescriptionCheck(name, description);
+
         if (subcommands.isEmpty())
             throw new IllegalStateException("No subcommands found for group: " + name);
 
@@ -41,6 +46,12 @@ public abstract class GroupSlashCommand implements ISlashCommand {
             log.error("Unknown subcommand: {} for group: {}", subcommandName, name);
             event.reply("An unknown subcommand was used.").setEphemeral(true).queue();
         }
+    }
+
+    protected GroupSlashCommand setCommandGroup(String name, String description) {
+        this.name = name;
+        this.description = description;
+        return this;
     }
 
     public GroupSlashCommand addSubcommand(SubSlashCommand subcommand) {
